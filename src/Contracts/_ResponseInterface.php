@@ -1,7 +1,7 @@
 <?php
 /**
  * ResponseInterface.php
- * 8/6/17 - 8:45 PM
+ * 7/15/17 - 1:02 AM
  *
  * PHP version 7
  *
@@ -35,8 +35,6 @@
  */
 
 namespace Maduser\Minimal\Http\Contracts;
-
-use Maduser\Minimal\Http\Response;
 
 /**
  * Class Response
@@ -148,7 +146,7 @@ interface ResponseInterface
     public function redirect($url);
 
     /**
-     * Send 404 status
+     * Sends a 404 Error message
      */
     public function status404();
 
@@ -156,9 +154,4 @@ interface ResponseInterface
      * Exit PHP
      */
     public function terminate();
-
-    /**
-     * Returns errors from invalid json
-     */
-    function jsonErrors($string);
 }

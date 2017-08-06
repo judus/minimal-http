@@ -99,8 +99,9 @@ class Response implements ResponseInterface
      */
 	public function header($str)
 	{
-		header($str);
-
+	    if (php_sapi_name() != 'cli' &&  !defined('STDIN')) {
+		    header($str);
+        }
         return $this;
     }
 
@@ -121,7 +122,7 @@ class Response implements ResponseInterface
 
         $content = $this->printRecursiveNonAlphaNum($content);
 
-        if (! $this->json_errors($content)) {
+        if (! $this->jsonErrors($content)) {
             $this->header('Content-Type: application/json');
         }
 
@@ -212,9 +213,16 @@ class Response implements ResponseInterface
     public function printRecursiveNonAlphaNum($content = null)
     {
         if (is_array($content) || is_object($content)) {
+
             ob_start();
+
             /** @noinspection PhpUndefinedFunctionInspection */
-            d($content);
+            if (php_sapi_name() != 'cli' && !defined('STDIN')) {
+                d($content);
+            } else {
+                var_dump($content);
+            }
+
             $content = ob_get_contents();
             ob_end_clean();
         }
@@ -248,7 +256,7 @@ class Response implements ResponseInterface
 		exit();
 	}
 
-    function json_errors($string)
+    public function jsonErrors($string)
     {
         // decode the JSON data
         $result = json_decode($string);
