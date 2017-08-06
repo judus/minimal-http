@@ -97,19 +97,23 @@ interface RequestInterface
     /**
      * Fetch the http method
      */
-    public function fetchRequestMethod();
+    public function fetchRequestMethod($server = null);
 
     /**
      * Fetches the REQUEST_URI and sets $uriString
+     *
+     * @param $server
+     *
+     * @return
      */
-    public function fetchUriString();
+    public function fetchUriString($server = null);
 
     /**
      * Formats cli args like a uri
      *
      * @return string
      */
-    public function parseCliArgs();
+    public function parseCliArgs($server = null);
 
     /**
      * Filter or replace bad chars from uri
@@ -122,8 +126,12 @@ interface RequestInterface
 
     /**
      * Explodes the uri string
+     *
+     * @param $uri
+     *
+     * @return
      */
-    public function explodeSegments();
+    public function explodeSegments($uri);
 
     /**
      * Returns the nth uri segment

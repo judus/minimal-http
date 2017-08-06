@@ -104,7 +104,14 @@ class Request implements RequestInterface
     public function post($key = null)
     {
         if ($key) {
-            return $_POST['key'];
+
+            if (!isset($_POST[$key])) {
+                throw new \InvalidArgumentException(sprintf(
+                    '%s ist not a valid key for $_POST', $key
+                ));
+            }
+
+            return $_POST[$key];
         }
 
         return $_POST;
@@ -118,19 +125,26 @@ class Request implements RequestInterface
     public function request($key = null)
     {
         if ($key) {
-            return $_REQUEST['key'];
+
+            if (!isset($_REQUEST[$key])) {
+                throw new \InvalidArgumentException(sprintf(
+                    '%s ist not a valid key for $_POST', $key
+                ));
+            }
+
+            return $_REQUEST[$key];
+
         }
 
         return $_REQUEST;
     }
 
     /**
-     * @param null $key
-     *
      * @return array
      */
-    public function files($key = null)
+    public function files()
     {
+
         $keys = [];
         foreach ($_FILES['name'] as $key => $value) {
             $keys[] = $key;
@@ -151,8 +165,6 @@ class Request implements RequestInterface
 
         return $newFilesArray;
     }
-
-
 
 
     /**
@@ -184,12 +196,14 @@ class Request implements RequestInterface
     /**
      * @return mixed
      */
-    public function getScheme()
+    public function getScheme($server = null)
     {
+        $server || $server = $this->_SERVER;
+
         if (is_null($this->scheme)) {
             $this->setScheme(
-                isset($_SERVER['REQUEST_SCHEME']) ?
-                    $_SERVER['REQUEST_SCHEME'] : ''
+                isset($server['REQUEST_SCHEME']) ?
+                    $server['REQUEST_SCHEME'] : ''
             );
         }
 
@@ -211,11 +225,13 @@ class Request implements RequestInterface
     /**
      * @return mixed
      */
-    public function getHost()
+    public function getHost($server = null)
     {
+        $server || $server = $this->_SERVER;
+
         if (is_null($this->host)) {
-            $host = $this->getServer();
-            empty($this->getPort()) || $host .= ':' . $this->getPort();
+            $host = $this->getServer($server);
+            empty($this->getPort($server)) || $host .= ':' . $this->getPort($server);
             $this->setHost($host);
         }
 
@@ -237,11 +253,13 @@ class Request implements RequestInterface
     /**
      * @return mixed
      */
-    public function getServer()
+    public function getServer($server = null)
     {
+        $server || $server = $this->_SERVER;
+
         if (is_null($this->server)) {
-            $this->setServer(isset($_SERVER['SERVER_NAME']) ?
-                $_SERVER['SERVER_NAME'] : '');
+            $this->setServer(isset($server['SERVER_NAME']) ?
+                $server['SERVER_NAME'] : '');
         }
 
         return $this->server;
@@ -262,12 +280,14 @@ class Request implements RequestInterface
     /**
      * @return mixed
      */
-    public function getPort()
+    public function getPort($server = null)
     {
+        $server || $server = $this->_SERVER;
+
         if (is_null($this->port)) {
             $this->setPort(
-                isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != 80
-                    ? $_SERVER['SERVER_PORT'] : ''
+                isset($server['SERVER_PORT']) && $server['SERVER_PORT'] != 80
+                    ? $server['SERVER_PORT'] : ''
             );
         }
 
@@ -287,12 +307,17 @@ class Request implements RequestInterface
     }
 
     /**
+     * @param null $server
+     *
      * @return mixed
+     * @throws \Exception
      */
-    public function getIp()
+    public function getIp($server = null)
     {
-        if (is_null($this->ip) && isset($_SERVER['REMOTE_ADDR'])) {
-            $this->setIp($_SERVER['REMOTE_ADDR']);
+        $server || $server = $this->_SERVER;
+
+        if (is_null($this->ip) && isset($server['REMOTE_ADDR'])) {
+            $this->setIp($server['REMOTE_ADDR']);
         }
 
         return $this->ip;
@@ -387,7 +412,7 @@ class Request implements RequestInterface
      */
     public function getSegments(): array
     {
-        return $this->segments;
+        return $this->explodeSegments($this->getUriString());
     }
 
     /**
@@ -396,12 +421,18 @@ class Request implements RequestInterface
      * sets $uriString
      * sets $segments
      */
-    public function __construct()
+    public function __construct($server = null)
     {
+        $this->_SERVER = $server ? $server : $_SERVER;
+
         $this->fetchServerInfo();
-        $this->fetchRequestMethod();
-        $this->fetchUriString();
-        $this->explodeSegments();
+        $this->setRequestMethod($this->fetchRequestMethod());
+
+        if (php_sapi_name() == 'cli' or defined('STDIN')) {
+            $this->setUriString($this->parseCliArgs());
+        } else {
+            $this->setUriString($this->fetchUriString());
+        }
     }
 
     /**
@@ -418,13 +449,9 @@ class Request implements RequestInterface
     /**
      * Fetch the http method
      */
-    public function fetchRequestMethod()
+    public function fetchRequestMethod($server = null)
     {
-        if (php_sapi_name() == 'cli' or defined('STDIN')) {
-            $this->setRequestMethod('CLI');
-
-            return;
-        }
+        $server || $server = $this->_SERVER;
 
         if (isset($_POST['_method'])) {
             if (
@@ -432,28 +459,26 @@ class Request implements RequestInterface
                 strtoupper($_POST['_method']) == 'PATCH' ||
                 strtoupper($_POST['_method']) == 'DELETE'
             ) {
-                $this->setRequestMethod(strtoupper($_POST['_method']));
-
-                return;
+                return strtoupper($_POST['_method']);
             }
         }
 
-        $this->setRequestMethod($_SERVER['REQUEST_METHOD']);
+        if (php_sapi_name() == 'cli' || defined('STDIN')) {
+            return 'CLI';
+        }
+
+        return $server['REQUEST_METHOD'];
     }
 
     /**
      * Fetches the REQUEST_URI and sets $uriString
      */
-    public function fetchUriString()
+    public function fetchUriString($server = null)
     {
-        if (php_sapi_name() == 'cli' or defined('STDIN')) {
-            $this->setUriString($this->parseCliArgs());
-
-            return;
-        }
+        $server || $server = $this->_SERVER;
 
         // Fetch request string (apache)
-        $uri = $_SERVER['REQUEST_URI'];
+        $uri = $server['REQUEST_URI'];
         $uri = parse_url($uri)['path'];
 
         // Further cleaning of the uri
@@ -461,32 +486,34 @@ class Request implements RequestInterface
 
         if (php_sapi_name() != 'cli' && !defined('STDIN')) {
 
-            $dirname = dirname($_SERVER['SCRIPT_FILENAME']);
+            $dirname = dirname($server['SCRIPT_FILENAME']);
             $dirname !== '.' || $dirname = '';
 
-            $diff = str_replace($_SERVER['DOCUMENT_ROOT'], '', $dirname);
+            $diff = str_replace($server['DOCUMENT_ROOT'], '', $dirname);
 
             $this->setBaseUri($diff);
 
             $uri = trim(str_replace($diff, '', '/' . $uri), '/');
         }
 
-        if (empty($uri)) {
-            $uri = '/';
-        }
-
-
-        $this->setUriString($uri);
+        return empty($uri) ? '/' : $uri;
     }
 
     /**
      * Formats cli args like a uri
      *
      * @return string
+     * @throws \Exception
      */
-    public function parseCliArgs()
+    public function parseCliArgs($server = null)
     {
-        $args = array_slice($_SERVER['argv'], 1);
+        $server || $server = $this->_SERVER;
+
+        if (!isset($server['argv'])) {
+            throw new \Exception('$_SERVER["argv"] is not available');
+        }
+
+        $args = array_slice($server['argv'], 1);
 
         return $args ? '/' . implode('/', $args) : '';
     }
@@ -509,18 +536,19 @@ class Request implements RequestInterface
     /**
      * Explodes the uri string
      */
-    public function explodeSegments()
+    public function explodeSegments($uri)
     {
-        foreach (
-            explode("/", preg_replace("|/*(.+?)/*$|", "\\1", $this->uriString))
-            as $val
-        ) {
-            $val = trim($this->filterUri($val));
+        $segments = [];
 
-            if ($val != '') {
-                $this->segments[] = $val;
-            }
+        $pattern = "|/*(.+?)/*$|";
+        $elements = explode("/", preg_replace($pattern, "\\1", $uri));
+
+        foreach ($elements as $val) {
+            $val = trim($this->filterUri($val));
+            empty($val) || $segments[] = $val;
         }
+
+        return $segments;
     }
 
     /**
@@ -530,8 +558,8 @@ class Request implements RequestInterface
      */
     public function segment(int $n)
     {
-        if (isset($this->getSegments()[$n])) {
-            return $this->getSegments()[$n];
+        if (isset($this->getSegments()[$n - 1])) {
+            return $this->getSegments()[$n - 1];
         }
 
         return null;
