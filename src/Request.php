@@ -83,7 +83,14 @@ class Request implements RequestInterface
     public function get($key = null)
     {
         if ($key) {
-            return $_GET['key'];
+
+            if (!isset($_GET[$key])) {
+                throw new \InvalidArgumentException(sprintf(
+                    '%s ist not a valid key for $_GET', $key
+                ));
+            }
+
+            return $_GET[$key];
         }
 
         return $_GET;
@@ -284,7 +291,7 @@ class Request implements RequestInterface
      */
     public function getIp()
     {
-        if (is_null($this->ip)) {
+        if (is_null($this->ip) && isset($_SERVER['REMOTE_ADDR'])) {
             $this->setIp($_SERVER['REMOTE_ADDR']);
         }
 
