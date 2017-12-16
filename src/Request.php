@@ -84,13 +84,14 @@ class Request implements RequestInterface
     {
         if ($key) {
 
-            if (!isset($_GET[$key])) {
-                throw new \InvalidArgumentException(sprintf(
-                    '%s ist not a valid key for $_GET', $key
-                ));
+            if (isset($_GET[$key])) {
+                return $_GET[$key];
             }
 
-            return $_GET[$key];
+            throw new \InvalidArgumentException(sprintf(
+                '%s ist not a valid key for $_GET', $key
+            ));
+
         }
 
         return $_GET;
@@ -105,16 +106,59 @@ class Request implements RequestInterface
     {
         if ($key) {
 
-            if (!isset($_POST[$key])) {
-                throw new \InvalidArgumentException(sprintf(
-                    '%s ist not a valid key for $_POST', $key
-                ));
+            if (isset($_POST[$key])) {
+                return $_POST[$key];
             }
 
-            return $_POST[$key];
+            throw new \InvalidArgumentException(sprintf(
+                '%s ist not a valid key for $_POST', $key
+            ));
+
         }
 
         return $_POST;
+    }
+
+    /**
+     * @param null $key
+     *
+     * @return mixed
+     */
+    public function file($key = null)
+    {
+        if ($key) {
+
+            if (isset($_FILES[$key])) {
+                return $_FILES[$key];
+            }
+
+            throw new \InvalidArgumentException(sprintf(
+                '%s ist not a valid key for $_FILES', $key
+            ));
+
+        }
+
+        return $_FILES;
+    }
+
+    /**
+     * @param null $key
+     *
+     * @return mixed
+     */
+    public function isGet($key = null)
+    {
+        return isset($_GET[$key]);
+    }
+
+    /**
+     * @param null $key
+     *
+     * @return mixed
+     */
+    public function isPost($key = null)
+    {
+        return isset($_POST[$key]);
     }
 
     /**
