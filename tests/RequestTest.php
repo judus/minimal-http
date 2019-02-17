@@ -58,10 +58,10 @@ class RequestTest extends TestCase
     }
 
     /**
-     * @expectedException \InvalidArgumentException
      */
     public function testCanHandleInvalidGETKey()
     {
+        $this->expectException(\InvalidArgumentException::class);
         $request = new Request();
         $request->get('invalidKey');
     }
@@ -80,10 +80,10 @@ class RequestTest extends TestCase
     }
 
     /**
-     * @expectedException \InvalidArgumentException
      */
     public function testCanHandleInvalidPOSTKey()
     {
+        $this->expectException(\InvalidArgumentException::class);
         $request = new Request();
         $request->post('invalidKey');
     }
@@ -102,10 +102,10 @@ class RequestTest extends TestCase
     }
 
     /**
-     * @expectedException \InvalidArgumentException
      */
     public function testCanHandleInvalidREQUESTKey()
     {
+        $this->expectException(\InvalidArgumentException::class);
         $request = new Request();
         $request->request('invalidKey');
     }
