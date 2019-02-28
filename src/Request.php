@@ -472,11 +472,16 @@ class Request implements RequestInterface
         $this->fetchServerInfo();
         $this->setRequestMethod($this->fetchRequestMethod());
 
-        if (php_sapi_name() == 'cli' or defined('STDIN')) {
+        if ($this->isCli()) {
             $this->setUriString($this->parseCliArgs());
         } else {
             $this->setUriString($this->fetchUriString());
         }
+    }
+
+    public function isCli()
+    {
+        return php_sapi_name() == 'cli' || defined('STDIN');
     }
 
     /**
@@ -519,6 +524,10 @@ class Request implements RequestInterface
      */
     public function fetchUriString($server = null)
     {
+        if (php_sapi_name() == 'cli' || defined('STDIN')) {
+            return $this->getArgs()[0];
+        }
+
         $server || $server = $this->_SERVER;
 
         // Fetch request string (apache)
@@ -528,17 +537,15 @@ class Request implements RequestInterface
         // Further cleaning of the uri
         $uri = str_replace(array('//', '../'), '/', trim($uri, '/'));
 
-        if (php_sapi_name() != 'cli' && !defined('STDIN')) {
 
-            $dirname = dirname($server['SCRIPT_FILENAME']);
-            $dirname !== '.' || $dirname = '';
+        $dirname = dirname($server['SCRIPT_FILENAME']);
+        $dirname !== '.' || $dirname = '';
 
-            $diff = str_replace($server['DOCUMENT_ROOT'], '', $dirname);
+        $diff = str_replace($server['DOCUMENT_ROOT'], '', $dirname);
 
-            $this->setBaseUri($diff);
+        $this->setBaseUri($diff);
 
-            $uri = trim(str_replace($diff, '', '/' . $uri), '/');
-        }
+        $uri = trim(str_replace($diff, '', '/' . $uri), '/');
 
         return empty($uri) ? '/' : $uri;
     }
@@ -551,15 +558,26 @@ class Request implements RequestInterface
      */
     public function parseCliArgs($server = null)
     {
+        $args = $this->getArgs($server);
+
+        return $this->getArgs($server)[0];
+    }
+
+    /**
+     * @param null $server
+     *
+     * @return array
+     * @throws \Exception
+     */
+    public function getArgs($server = null): array
+    {
         $server || $server = $this->_SERVER;
 
         if (!isset($server['argv'])) {
             throw new \Exception('$_SERVER["argv"] is not available');
         }
 
-        $args = array_slice($server['argv'], 1);
-
-        return $args ? '/' . implode('/', $args) : '';
+        return array_slice($server['argv'], 1);
     }
 
     /**
